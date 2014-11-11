@@ -1,4 +1,4 @@
 pathmaker
 =========
 
-Easy cross-platform path cditing
+Easy cross-platform path editing
