@@ -3,6 +3,34 @@ pathmaker
 
 Easy cross-platform path editing
 
+Download
+========
+
+Pre-built binaries are provided by Bintray:
+
+http://dl.bintray.com/smaudet2/generic/pathmaker-setup.exe
+
+Building
+========
+
+Install:
+
+* Pywin32
+* Pywin32ext
+* Python 27 32 bit
+* PyGTK 32 bit
+
+Run:
+
+`setup.py build`
+
+To make the installer, install InnoSetup, double click the setup file, click 'run'. Install will be in ./Output/
+
+Running
+=======
+
+Assuming you have the build depedencies listed above installed
+
 
 Why?
 ====
