@@ -291,20 +291,7 @@ if __name__ == "__main__":
   gtk.threads_init()
   gtk.threads_enter()
   hw = pathmaker()
-  fmain = open('main.log','w')
-  fmain.write("finish making pathmaker")
-  fmain.flush()
-  try:
-    gtk.main()
-  except Exception as e:
-    fmain.write(str(e))
-    fmain.flush()
-
-  fmain.write("gtk done")
-  fmain.flush()
-
+  gtk.main()
   # cleanup
   gtk.threads_leave()
-
-  fmain.close()
 

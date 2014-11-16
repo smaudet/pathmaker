@@ -36,10 +36,14 @@ gtk_base_path = m.__path__[0]
 setup(
   name="pathmaker"
   ,version='0.1'
-  ,windows=[ {
-    'script' : 'pathmaker.py',
-    'uac_info' : "requireAdministrator"
-  }]
+  ,windows=[
+    {
+      'script' : 'pathmaker.py',
+      'icon_resources' : [
+        (1,"./path_maker.ico")],
+      'uac_info' : "requireAdministrator"
+    }
+  ]
   ,options={
     'py2exe':{
       'packages':'encodings',
