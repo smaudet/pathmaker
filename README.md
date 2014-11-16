@@ -17,7 +17,7 @@ Install:
 
 * Pywin32
 * Pywin32ext
-* Python 27 32 bit
+* Python 2.7 32 bit
 * PyGTK 32 bit
 
 Run:
@@ -29,7 +29,9 @@ To make the installer, install InnoSetup, double click the setup file, click 'ru
 Running
 =======
 
-Assuming you have the build depedencies listed above installed
+Assuming you have the build depedencies listed above installed, simply run:
+
+`pathmaker.py`
 
 
 Why?
