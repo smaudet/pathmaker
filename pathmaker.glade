@@ -2,6 +2,57 @@
 <interface>
   <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy project-wide -->
+  <object class="GtkAction" id="deleteAction">
+    <signal name="activate" handler="on_deleteAction_activate" swapped="no"/>
+  </object>
+  <object class="GtkAction" id="duplicateAction">
+    <signal name="activate" handler="on_duplicateAction_activate" swapped="no"/>
+  </object>
+  <object class="GtkTreeStore" id="generalTreeStore">
+    <columns>
+      <!-- column-name a -->
+      <column type="gchararray"/>
+      <!-- column-name b -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkAction" id="saveAction">
+    <signal name="activate" handler="on_saveAction_activate" swapped="no"/>
+  </object>
+  <object class="GtkMenu" id="itempopup">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkMenuItem" id="deleteItem">
+        <property name="use_action_appearance">False</property>
+        <property name="related_action">deleteAction</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">delete</property>
+        <property name="use_underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="saveItem">
+        <property name="use_action_appearance">False</property>
+        <property name="related_action">saveAction</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">save</property>
+        <property name="use_underline">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="duplicateItem">
+        <property name="use_action_appearance">False</property>
+        <property name="related_action">duplicateAction</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">duplicate</property>
+        <property name="use_underline">True</property>
+      </object>
+    </child>
+  </object>
   <object class="GtkListStore" id="sysVarsData">
     <columns>
       <!-- column-name Variable -->
@@ -58,7 +109,10 @@
                     <property name="model">userVarsData</property>
                     <property name="headers_clickable">False</property>
                     <property name="search_column">0</property>
+                    <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
+                    <signal name="button-press-event" handler="on_list_button_press_event" swapped="no"/>
+                    <signal name="button-release-event" handler="on_list_button_release" swapped="no"/>
                     <child>
                       <object class="GtkTreeViewColumn" id="Variable">
                         <property name="title" translatable="yes">Variable Title</property>
@@ -220,7 +274,10 @@
                     <property name="model">sysVarsData</property>
                     <property name="headers_clickable">False</property>
                     <property name="search_column">0</property>
+                    <property name="rubber_banding">True</property>
                     <property name="enable_grid_lines">both</property>
+                    <signal name="button-press-event" handler="on_list_button_press_event" swapped="no"/>
+                    <signal name="button-release-event" handler="on_list_button_release" swapped="no"/>
                     <child>
                       <object class="GtkTreeViewColumn" id="Variable1">
                         <property name="title" translatable="yes">Variable Title</property>

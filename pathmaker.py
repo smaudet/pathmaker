@@ -2,15 +2,30 @@
 
 import os
 import sys
-import win32com.shell.shell as shell
-import win32api,win32con
-# import win32api, win32process
-import subprocess
+from win32com.shell import shell
+import win32api, win32con  # lint:ok
 import tempfile
-from time import sleep
 ASADMIN = 'asadmin'
 
-if sys.argv[-1] != ASADMIN:
+
+is_admin = False
+was_admin = False
+try:
+  is_admin = sys.argv[-1] == ASADMIN
+except:
+  pass
+
+#if we were given admin rights by e.g. sudo or a UAC manifest
+if not is_admin:
+  import ctypes
+  try:
+    is_admin = os.getuid() == 0
+  except AttributeError:
+    is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
+  was_admin = is_admin
+
+#attempt to run the script as an admin
+if not is_admin:
   #find the current python script
   script = os.path.abspath(sys.argv[0])
   #re-create its argument list
@@ -26,40 +41,50 @@ if sys.argv[-1] != ASADMIN:
   params = ' '.join([script] + sys.argv[1:] + [name,ASADMIN])
   #re-run the script as admin
   #force a write of the relevant variable exports
-  
-  res = shell.ShellExecuteEx(nShow=showCmd,lpVerb='runas', lpFile=sys.executable, lpParameters=params)
+
+  res = shell.ShellExecuteEx(
+    lpVerb='runas'
+    , lpFile=sys.executable
+    , lpParameters=params)
+    # , nShow=showCmd
+  f = open('path.log','w')
+  f.write(sys.executable)
+  f.flush()
+
+  f.write(params)
+
+  f.close()
+
 #  print sys.executable
 #  print params
-#  for k in res:
-#    print k,res[k]
-  
+
   sys.exit(0)
 
-fname = sys.argv[-2]
-f = open(sys.argv[-2])
-pathStr = f.readline()
-pkgStr = f.readline()
-win32api.SetEnvironmentVariable('PATH',pathStr)
-win32api.SetEnvironmentVariable('PKG_CONFIG_PATH',pkgStr)
-os.environ['path']=pathStr
-os.environ['pkgStr']=pkgStr
-f.close()
-try:
-  os.remove(fname)
-except Exception as e:
-  print e
+if not was_admin:
+  fname = sys.argv[-2]
+  f = open(sys.argv[-2])
+  pathStr = f.readline()
+  pkgStr = f.readline()
+  win32api.SetEnvironmentVariable('PATH',pathStr)
+  win32api.SetEnvironmentVariable('PKG_CONFIG_PATH',pkgStr)
+  os.environ['path']=pathStr
+  os.environ['pkgStr']=pkgStr
+  f.close()
+
+  try:
+    os.remove(fname)
+  except Exception as e:
+    print e
 
 try:
   import pygtk
   pygtk.require("2.0")
 except:
-  print "failed to load pygtk"
+  sys.exit(1)
 
 try:
-
   import gtk
-  import gtk.glade
-except:
+except Exception as e:
   sys.exit(1)
 
   #from win32env import Win32Environment as Win32Env
@@ -74,19 +99,32 @@ class pathmaker:
     self.b.add_from_file(self.gladefile)
 
     #self.lst = self.b.get_object("userVarsData")
-    
+
     self.window = self.b.get_object("pathmakerWindow")
+
     varUserView = self.b.get_object("userVarsView")
+    varUserView.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+    varUserView.get_selection().set_select_function(self.handleSelect,full=True)
     varUserModel = self.b.get_object("userVarsData")
     varSysView = self.b.get_object("sysVarsView")
+    varSysView.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+    varSysView.get_selection().set_select_function(self.handleSelect,full=True)
     varSysModel = self.b.get_object("sysVarsData")
     varUserModel.clear()
     varSysModel.clear()
 
-    self.userKey = winreg.OpenKey(winreg.HKEY_CURRENT_USER,'Environment',0,winreg.KEY_ALL_ACCESS)
-    self.sysKey = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',0,winreg.KEY_ALL_ACCESS)
-    
-    
+    self.userKey = winreg.OpenKey(
+      winreg.HKEY_CURRENT_USER,
+      'Environment',
+      0,
+      winreg.KEY_ALL_ACCESS)
+    self.sysKey = winreg.OpenKey(
+      winreg.HKEY_LOCAL_MACHINE,
+      r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+      0,
+      winreg.KEY_ALL_ACCESS)
+
+
     self.setupModel(varUserModel,self.userKey)
     self.setupModel(varSysModel,self.sysKey)
 
@@ -96,9 +134,20 @@ class pathmaker:
     self.varUserModel = varUserModel
     self.varSysModel = varSysModel
 
-    self.window.show_all()
+    self.popup = self.b.get_object("itempopup")
+    self.wasRightClick = {}
+    self.wasRightClick[varUserView]=False
+    self.wasRightClick[varSysView]=False
 
     self.b.connect_signals(self)
+
+    self.window.show_all()
+
+  def handleSelect(self,selection,model,path,is_selected):
+    if(is_selected):
+      if(self.wasRightClick[selection.get_tree_view()]):
+        return False
+    return True
 
   def setupModel(self,model,key):
     (keys,vals,j) = winreg.QueryInfoKey(key)
@@ -109,13 +158,22 @@ class pathmaker:
     except Exception as e:
       print e
 
+  def on_deleteAction_activate(self,ev):
+    (model,paths) = self.cur_sel
+    print paths
+    rows = []
+    for path in paths:
+      rows.append(gtk.TreeRowReference(model,path))
+    for row in rows:
+      model.remove(model.get_iter(row.get_path()))
+
   def pathmakerWindow_destroy(self,ev):
     winreg.FlushKey(self.userKey)
     winreg.FlushKey(self.sysKey)
     winreg.CloseKey(self.userKey)
     winreg.CloseKey(self.sysKey)
     gtk.main_quit()
-    
+
   def userVarEntry_changed_cb(self,entry):
     #print "userVar"
     self.userVar = entry.get_chars(0,-1)
@@ -131,15 +189,13 @@ class pathmaker:
   def sysValEntry_changed_cb(self,entry):
     #print "sysVal"
     self.sysVal = entry.get_chars(0,-1)
-    
+
   def handleUserCreate(self,btn):
-    print "user"
     self.addVar(self.userVar,self.userVal,self.varUserModel,self.userKey)
 
   def handleSysCreate(self,btn):
-    print "sys"
     self.addVar(self.sysVar,self.sysVal,self.varSysModel,self.sysKey)
-    
+
   #add var to set
   def addVar(self,varName,val,model,key):
     if(self.notExists(key,varName)):
@@ -148,8 +204,6 @@ class pathmaker:
       winreg.FlushKey(key)
 
   def notExists(self,key,varName):
-    print varName
-    print key
     try:
       (val,t) = winreg.QueryValueEx(key,varName)
       return val == None
@@ -158,10 +212,10 @@ class pathmaker:
       return True
 
   def on_textcell_editing_canceled(self,cell):
-    print "cancel"
+    pass
 
   def on_textcell_editing_started(self,cell,editable,path):
-    print "start"
+    pass
 
   def on_textcell_userVar_edited(self,cell,path,new_text):
     if(self.notExists(self.userKey,new_text)):
@@ -204,11 +258,53 @@ class pathmaker:
     winreg.SetValueEx(key,name,None,t,data)
     #delete old value
     winreg.DeleteValue(key,old)
-    
-    
-    
+
+  def on_list_button_press_event(self, treeview, event):
+    self.wasRightClick[treeview]=False
+    if event.button == 3:
+      self.wasRightClick[treeview]=True
+      x = int(event.x)
+      y = int(event.y)
+      time = event.time
+      pthinfo = treeview.get_path_at_pos(x, y)
+      if pthinfo is not None:
+        path, col, cellx, celly = pthinfo
+        treeview.grab_focus()
+        treeview.set_cursor( path, col, 0)
+        self.popup.popup( None, None, None, event.button, time)
+        return False
+
+  def on_list_button_release(self, treeview, event):
+    if event.button == 1:
+      self.cur_sel = treeview.get_selection().get_selected_rows()
+
+  def on_saveAction_activate(self):
+    pass
+
+  def on_duplicateAction_activate(self):
+    pass
+
+
 if __name__ == "__main__":
+
+  # enable threading
+  gtk.threads_init()
+  gtk.threads_enter()
   hw = pathmaker()
-  gtk.main()
-  print "done"
-  
+  fmain = open('main.log','w')
+  fmain.write("finish making pathmaker")
+  fmain.flush()
+  try:
+    gtk.main()
+  except Exception as e:
+    fmain.write(str(e))
+    fmain.flush()
+
+  fmain.write("gtk done")
+  fmain.flush()
+
+  # cleanup
+  gtk.threads_leave()
+
+  fmain.close()
+
