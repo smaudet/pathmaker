@@ -55,7 +55,7 @@ Features
 Roadmap
 =======
 
- * Delete support (50% complete)
+ * -Delete support-
  * Export support
  * Self contained exe (75% complete - installer generation and distutils in place)
  * Port to other platforms (linux/mac/android?)
