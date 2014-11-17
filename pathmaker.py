@@ -95,29 +95,31 @@ except Exception as e:
 
   #from win32env import Win32Environment as Win32Env
 import _winreg as winreg
+from time import sleep
 
 class pathmaker(object):
 
   def __init__(self):
     self.gladefile = "./pathmaker.glade"
 
-    self.b = gtk.Builder()
-    self.b.add_from_file(self.gladefile)
+    b = gtk.Builder()
+    self.b = b
+    b.add_from_file(self.gladefile)
 
     #self.lst = self.b.get_object("userVarsData")
 
-    self.window = self.b.get_object("pathmakerWindow")
+    self.window = b.get_object("pathmakerWindow")
 
-    varUserView = self.b.get_object("userVarsView")
+    varUserView = b.get_object("userVarsView")
     userSel = varUserView.get_selection()
     userSel.set_mode(gtk.SELECTION_MULTIPLE)
     userSel.set_select_function(self.handleSelect, full=True)
-    varUserModel = self.b.get_object("userVarsData")
-    varSysView = self.b.get_object("sysVarsView")
+    varUserModel = b.get_object("userVarsData")
+    varSysView = b.get_object("sysVarsView")
     sysSel = varSysView.get_selection()
     sysSel.set_mode(gtk.SELECTION_MULTIPLE)
     sysSel.set_select_function(self.handleSelect, full=True)
-    varSysModel = self.b.get_object("sysVarsData")
+    varSysModel = b.get_object("sysVarsData")
     varUserModel.clear()
     varSysModel.clear()
 
@@ -138,6 +140,10 @@ class pathmaker(object):
 
     varUserView.set_model(varUserModel)
     varSysView.set_model(varSysModel)
+
+    self.modelKeys = {}
+    self.modelKeys[varUserModel] = self.userKey
+    self.modelKeys[varSysModel] = self.sysKey
 
     self.varUserModel = varUserModel
     self.varSysModel = varSysModel
@@ -179,8 +185,14 @@ class pathmaker(object):
     for path in paths:
       rows.append(gtk.TreeRowReference(model, path))
     for row in rows:
-      model.remove(model.get_iter(row.get_path()))
+      itr = model.get_iter(row.get_path())
+      name = model.get(itr,0)[0]
+      self.delReg(self.modelKeys[model],name)
+      model.remove(itr)
 
+  def delReg(self, key, varName):
+    winreg.DeleteValue(key, varName)            
+                    
   def pathmakerWindow_destroy(self, ev):
     winreg.FlushKey(self.userKey)
     winreg.FlushKey(self.sysKey)
